@@ -1,35 +1,10 @@
-import pandas as pd
-
-# Create your DataFrame (assuming you have columns: product, variance, volume)
-data = {
-    'product': ['product1', 'product2', ...],  # Replace with actual product names
-    'variance': [0.1, 0.5, ...],  # Replace with actual variance values
-    'volume': [100, 200, ...]  # Replace with actual volume values
-}
-
-df = pd.DataFrame(data)
-
-# Define the number of quantiles (segments) for variance and volume
-num_quantiles = 4  # 4 quantiles for 3 labels (low, med, high)
-
-# Use qcut to categorize products based on variance and volume
-df['variance_category'] = pd.qcut(df['variance'], q=num_quantiles, labels=False)
-df['volume_category'] = pd.qcut(df['volume'], q=num_quantiles, labels=False)
-
-# Define labels for the segments (assuming 3 segments)
-variance_labels = ['low', 'med', 'high']
-volume_labels = ['X', 'Y', 'Z']
-
-# Map the numerical labels to the defined labels
-df['variance_category'] = df['variance_category'].apply(lambda x: variance_labels[x])
-df['volume_category'] = df['volume_category'].apply(lambda x: volume_labels[x])
 
 # Create lists for each class
 class_lists = {f'{var}_{vol}': [] for var in variance_labels for vol in volume_labels}
 
 # Populate the lists based on category combinations
 for idx, row in df.iterrows():
-    class_lists[f"{row['variance_category']}_{row['volume_category']}"].append(row['product'])
+    class_lists[f"{row['SalesQuantVar']}_{row['SalesQuantVol']}"].append(row.index)
 
 # Display the lists
 for class_name, products in class_lists.items():
