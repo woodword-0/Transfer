@@ -1,0 +1,26 @@
+import pandas as pd
+from datetime import timedelta
+
+# Sample data
+data = {'Invoice Date': ['2023-01-15', '2023-01-20', '2023-02-10', '2023-02-25', '2023-03-05', '2023-03-20', '2023-04-10', '2023-04-15'],
+        'Sales quantity': [10, 15, 8, 12, 18, 20, 7, 11]}
+df = pd.DataFrame(data)
+df['Invoice Date'] = pd.to_datetime(df['Invoice Date'])
+
+# Step 1: Extract data for the last five months
+current_date = df['Invoice Date'].max()
+five_months_ago = current_date - pd.DateOffset(months=5)
+filtered_df = df[df['Invoice Date'] >= five_months_ago]
+
+# Step 2: Remove max and min values within each month
+filtered_df = filtered_df.groupby(filtered_df['Invoice Date'].dt.to_period("M")).apply(lambda group: group[(group['Sales quantity'] != group['Sales quantity'].max()) & (group['Sales quantity'] != group['Sales quantity'].min())])
+
+# Step 3: Calculate average sales quantity over the last 30 days for each month
+filtered_df['Rolling Average'] = filtered_df.groupby(filtered_df['Invoice Date'].dt.to_period("M"))['Sales quantity'].rolling(window=30, min_periods=1).mean().reset_index(level=0, drop=True)
+
+# Step 4: Use the data to predict sales quantities for the next month
+next_month = current_date + pd.DateOffset(months=1)
+prediction_data = filtered_df[filtered_df['Invoice Date'].dt.to_period("M") == next_month.to_period("M")]
+predicted_average = prediction_data['Rolling Average'].iloc[0]
+
+print("Predicted Average Sales Quantity for the Next Month:", predicted_average)
