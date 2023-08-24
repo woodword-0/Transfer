@@ -9,17 +9,30 @@ dataframes = [pd.read_csv(file) for file in csv_files]
 def calculate_z_score(series):
     return (series - series.mean()) / series.std()
 
+# Define quantiles for volume and z-score standardized variance
+volume_quantiles = [0.33, 0.66]
+variance_quantiles = [0.33, 0.66]
+
 # Process each dataframe
 result_data = []
-for df in dataframes:
-    # Filter data for the past year (assuming 'Date' is the date column)
+for file, df in zip(csv_files, dataframes):
+    # Convert 'Invoice Date' to timestamp
+    df['Invoice Date'] = pd.to_datetime(df['Invoice Date'])
+    
+    # Filter data for the past year
     one_year_ago = pd.Timestamp.now() - pd.DateOffset(years=1)
-    df = df[df['Date'] >= one_year_ago]
+    df = df[df['Invoice Date'] >= one_year_ago]
     
     if not df.empty:
+        volume_group = pd.qcut(df['Sales Quantity'], q=volume_quantiles, labels=['A', 'B', 'C'])
         df['Z_Score'] = calculate_z_score(df['Sales Quantity'])
-        group = 'ABC' if df['Sales Quantity'].sum() > 1000 else 'XYZ'
-        result_data.append({'Group': group, 'Variance': df['Sales Quantity'].var()})
+        variance_group = pd.qcut(df['Z_Score'].std(), q=variance_quantiles, labels=['X', 'Y', 'Z'])
+        
+        result_data.append({
+            'File': file,
+            'Volume Group': volume_group.values[0],
+            'Variance Group': variance_group.values[0]
+        })
 
 # Create a final dataframe with the grouped results
 result_df = pd.DataFrame(result_data)
