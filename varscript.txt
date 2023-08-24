@@ -1,0 +1,28 @@
+import pandas as pd
+import glob
+
+# Load all CSV files into a list of dataframes
+csv_files = glob.glob('path/to/your/csv/files/*.csv')
+dataframes = [pd.read_csv(file) for file in csv_files]
+
+# Define a function to calculate z-scores
+def calculate_z_score(series):
+    return (series - series.mean()) / series.std()
+
+# Process each dataframe
+result_data = []
+for df in dataframes:
+    # Filter data for the past year (assuming 'Date' is the date column)
+    one_year_ago = pd.Timestamp.now() - pd.DateOffset(years=1)
+    df = df[df['Date'] >= one_year_ago]
+    
+    if not df.empty:
+        df['Z_Score'] = calculate_z_score(df['Sales Quantity'])
+        group = 'ABC' if df['Sales Quantity'].sum() > 1000 else 'XYZ'
+        result_data.append({'Group': group, 'Variance': df['Sales Quantity'].var()})
+
+# Create a final dataframe with the grouped results
+result_df = pd.DataFrame(result_data)
+
+# Print or save the result_df as needed
+print(result_df)
