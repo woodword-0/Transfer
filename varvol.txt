@@ -1,0 +1,26 @@
+import pandas as pd
+
+# Assuming df is your DataFrame
+# First, calculate the quantiles for volume categorization (ABC)
+quantiles = df.groupby('Product Name')['Sales Quantity'].quantile([0.33, 0.66]).unstack()
+quantiles['Volume Category'] = pd.cut(quantiles[0.66], bins=[-float('inf'), quantiles[0.33][0], quantiles[0.66][0], float('inf')], labels=['A', 'B', 'C'])
+
+# Calculate the variance for each product
+product_variance = df.groupby('Product Name')['Sales Quantity'].var()
+
+# Define the variance categories (XYZ)
+def categorize_variance(variance_value):
+    if variance_value > 0.66:
+        return 'X'
+    elif variance_value > 0.33:
+        return 'Y'
+    else:
+        return 'Z'
+
+# Apply the categorization function to each product's variance
+product_variance_categories = product_variance.apply(categorize_variance)
+
+# Create a new DataFrame to hold the results
+result_df = pd.DataFrame({'Product Name': product_variance.index, 'Volume Category': quantiles['Volume Category'], 'Variance Category': product_variance_categories})
+
+print(result_df)
