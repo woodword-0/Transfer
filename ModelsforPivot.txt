@@ -1,0 +1,61 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge, LassoCV
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+from math import sqrt
+
+# Sample pivot_table (replace this with your actual pivot_table)
+pivot_table = pd.DataFrame({
+    '2023-08-01': {'ProductA': 5, 'ProductB': 10},
+    '2023-09-01': {'ProductA': 8, 'ProductB': 12}
+})
+
+# Extract product names
+product_names = pivot_table.index.tolist()
+
+# Initialize results DataFrame
+results = pd.DataFrame(columns=['Product', 'Model', 'Predicted', 'Actual', 'RMSE'])
+
+# Define prediction lengths (1 month and 2 months)
+prediction_lengths = [1, 2]
+
+# Loop over prediction lengths and models
+for length in prediction_lengths:
+    for model_name, model in [('Ridge', Ridge()), ('LassoCV', LassoCV()), ('RandomForest', RandomForestRegressor())]:
+        for product in product_names:
+            # Create input features (historical months) and target values
+            X = pivot_table.drop(columns=[product]).values
+            y = pivot_table[product].shift(-length).dropna()
+
+            # Split data into train and test sets
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+
+            # Create a pipeline with a scaler and the chosen model
+            pipeline = Pipeline([
+                ('scaler', StandardScaler()),
+                ('model', model)
+            ])
+
+            # Fit the pipeline on training data
+            pipeline.fit(X_train, y_train)
+
+            # Make predictions
+            predictions = pipeline.predict(X_test)
+
+            # Calculate RMSE
+            rmse = sqrt(mean_squared_error(y_test, predictions))
+
+            # Append results to the DataFrame
+            results = results.append({
+                'Product': product,
+                'Model': model_name,
+                'Predicted': predictions[-1],
+                'Actual': y_test.values[-1],
+                'RMSE': rmse
+            }, ignore_index=True)
+
+# Print the results table
+print(results)
