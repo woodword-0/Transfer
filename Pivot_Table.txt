@@ -1,0 +1,21 @@
+import pandas as pd
+
+# Sample data (replace this with your actual DataFrame)
+data = {
+    'ProductName': ['ProductA', 'ProductB', 'ProductA', 'ProductB'],
+    'Month': ['2023-08-01', '2023-08-01', '2023-09-01', '2023-09-01'],
+    'TotalQuantity': [5, 10, 8, 12]
+}
+
+monthly_totals = pd.DataFrame(data)
+
+# Convert 'Month' column to datetime
+monthly_totals['Month'] = pd.to_datetime(monthly_totals['Month'])
+
+# Create a pivot table
+pivot_table = monthly_totals.pivot(index='ProductName', columns='Month', values='TotalQuantity')
+
+# Fill missing values with 0
+pivot_table = pivot_table.fillna(0)
+
+print(pivot_table)
