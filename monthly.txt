@@ -1,0 +1,25 @@
+import pandas as pd
+
+# Sample data (replace this with your actual DataFrame)
+data = {
+    'InvoiceName': ['Invoice1', 'Invoice2', 'Invoice3'],
+    'Quantity': [5, 10, 8],
+    'ProductName': ['ProductA', 'ProductB', 'ProductA'],
+    'InvoiceDate': ['2023-08-15', '2023-08-20', '2023-09-10']
+}
+
+df = pd.DataFrame(data)
+
+# Convert 'InvoiceDate' column to datetime
+df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
+
+# Set 'InvoiceDate' as the index
+df.set_index('InvoiceDate', inplace=True)
+
+# Group by 'ProductName' and resample by month, summing up the 'Quantity' for each month
+monthly_totals = df.groupby('ProductName').resample('M')['Quantity'].sum().reset_index()
+
+# Rename columns for clarity
+monthly_totals.columns = ['ProductName', 'Month', 'TotalQuantity']
+
+print(monthly_totals)
