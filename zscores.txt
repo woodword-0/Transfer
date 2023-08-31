@@ -1,0 +1,57 @@
+import pandas as pd
+import numpy as np
+
+# Sample data (replace this with your actual DataFrame)
+data = {
+    'ProductName': ['ProductA', 'ProductB', 'ProductA', 'ProductB'],
+    'Month': ['2023-08-01', '2023-08-01', '2023-09-01', '2023-09-01'],
+    'TotalQuantity': [5, 10, 8, 12]
+}
+
+monthly_totals = pd.DataFrame(data)
+
+# Convert 'Month' column to datetime
+monthly_totals['Month'] = pd.to_datetime(monthly_totals['Month'])
+
+# Calculate standard deviation for each product's total quantity
+std_deviation = monthly_totals.groupby('ProductName')['TotalQuantity'].std()
+
+# Merge standard deviation back into the monthly_totals DataFrame
+monthly_totals = monthly_totals.merge(std_deviation, on='ProductName', suffixes=('', '_std'))
+
+# Calculate Z-score normalized standard deviation
+monthly_totals['StdDevNormalized'] = (monthly_totals['TotalQuantity_std'] - monthly_totals['TotalQuantity_std'].mean()) / monthly_totals['TotalQuantity_std'].std()
+
+# Define quantile ranges for Z-score normalized standard deviation
+std_dev_quantile_ranges = {
+    'ZA': (monthly_totals['StdDevNormalized'] > 1),
+    'ZB': (monthly_totals['StdDevNormalized'] <= 1) & (monthly_totals['StdDevNormalized'] > 0),
+    'ZC': (monthly_totals['StdDevNormalized'] <= 0)
+}
+
+# Create 'StdDevCat' column based on Z-score quantiles
+monthly_totals['StdDevCat'] = np.select(
+    [std_dev_quantile_ranges['ZA'], std_dev_quantile_ranges['ZB'], std_dev_quantile_ranges['ZC']],
+    ['ZA', 'ZB', 'ZC']
+)
+
+# Define ranges for the quantiles
+quantile_ranges = {
+    'Hi': (monthly_totals['Hi'] + 1, monthly_totals['Hi'] * 2),
+    'Med': (monthly_totals['Med'] + 1, monthly_totals['Med'] * 2),
+    'Low': (0, monthly_totals['Low'] + 1)
+}
+
+# Function to categorize quantities
+def categorize_quantity(row):
+    for quantile, (low, high) in quantile_ranges.items():
+        if low <= row['TotalQuantity'] <= high:
+            return quantile
+
+# Apply the categorization function to create 'QuantityCat' column
+monthly_totals['QuantityCat'] = monthly_totals.apply(categorize_quantity, axis=1)
+
+# Create 'Text' column
+monthly_totals['Text'] = monthly_totals['QuantityCat'] + monthly_totals['ProductName'] + monthly_totals['StdDevCat']
+
+print(monthly_totals)
