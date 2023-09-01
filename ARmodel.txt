@@ -1,0 +1,78 @@
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.ar_model import AutoReg
+from sklearn.linear_model import Ridge, LassoCV
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+
+# Sample data (replace this with your actual data)
+data = {
+    'Product': ['ProductA', 'ProductB', 'ProductC'],
+    'Month1': [100, 150, 200],
+    'Month2': [120, 160, 220],
+    'Month3': [130, 155, 210],
+    'CombinedClass_XA': [1, 0, 0],
+    'CombinedClass_YB': [0, 1, 0],
+    'CombinedClass_ZC': [0, 0, 1]
+}
+
+# Create the initial DataFrame
+result_df = pd.DataFrame(data)
+
+# Set 'Product' as the index
+result_df.set_index('Product', inplace=True)
+
+# List of product names
+product_names = result_df.index.tolist()
+
+# Number of periods to forecast (1 and 2 months ahead)
+forecast_periods = 2
+
+# List of models to use
+models = [
+    ('AR', AutoReg),
+    ('Ridge', Ridge),
+    ('LassoCV', LassoCV),
+    ('RandomForest', RandomForestRegressor)
+]
+
+# List to store the results
+results = []
+
+# Iterate through each product
+for product in product_names:
+    # Select the row for the current product
+    product_row = result_df.loc[[product]]
+
+    # Extract the sales quantities as a time series
+    sales_time_series = product_row.values[0]
+
+    # Iterate through each model
+    for model_name, model_class in models:
+        # Fit the model
+        if model_name == 'AR':
+            model = model_class(sales_time_series, lags=1)
+        else:
+            model = model_class()
+
+        model_fit = model.fit(sales_time_series)
+
+        # Forecast one month ahead
+        one_month_forecast = model_fit.forecast(steps=forecast_periods)[0]
+
+        # Forecast two months ahead
+        two_months_forecast = model_fit.forecast(steps=forecast_periods * 2)[1]
+
+        # Store the results
+        results.append({
+            'Product': product,
+            'Model': model_name,
+            'OneMonthForecast': one_month_forecast,
+            'TwoMonthsForecast': two_months_forecast
+        })
+
+# Create a DataFrame from the results
+forecast_df = pd.DataFrame(results)
+
+# Display the forecasted values
+print(forecast_df)
