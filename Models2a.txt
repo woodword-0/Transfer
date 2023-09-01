@@ -1,0 +1,50 @@
+from sklearn.linear_model import Ridge, LassoCV
+from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
+from sklearn.metrics import mean_squared_error
+
+# List of product names (assuming they are columns in result_df)
+product_names = result_df.columns.tolist()[:-1]  # Exclude the target column(s)
+
+# List of models to use
+models = [
+    ('Ridge', Ridge()),
+    ('LassoCV', LassoCV()),
+    ('RandomForest', RandomForestRegressor()),
+    ('HistGradientBoosting', HistGradientBoostingRegressor())
+]
+
+# List to store the results
+results = []
+
+# Iterate through each product
+for product in product_names:
+    # Prepare the data (X: features, y: target)
+    X = result_df.drop(columns=[product])
+    y = result_df[product]
+
+    # Iterate through each model
+    for model_name, model in models:
+        # Train the model
+        model.fit(X, y)
+
+        # Make predictions for the next month and the month after
+        # You should have data for these months to make predictions
+
+        # Evaluate the model (e.g., calculate RMSE)
+        # Assuming you have actual values for evaluation
+        y_actual = actual_values_for_next_two_months  # Replace with your actual data
+        y_pred = model.predict(X_new_data)  # Replace with your new data
+
+        rmse = mean_squared_error(y_actual, y_pred, squared=False)
+
+        # Store the results
+        results.append({
+            'Product': product,
+            'Model': model_name,
+            'Predictions': y_pred,
+            'Actual': y_actual,
+            'RMSE': rmse
+        })
+
+# Create a DataFrame from the results
+results_df = pd.DataFrame(results)
