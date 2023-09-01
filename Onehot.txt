@@ -1,0 +1,17 @@
+# Assuming result_df is your DataFrame
+from sklearn.preprocessing import OneHotEncoder
+
+# Create an instance of the OneHotEncoder
+encoder = OneHotEncoder(sparse=False)
+
+# Encode the CombinedClass column
+encoded = encoder.fit_transform(result_df[['CombinedClass']])
+
+# Create a DataFrame with the encoded values
+encoded_df = pd.DataFrame(encoded, columns=encoder.get_feature_names_out(['CombinedClass']))
+
+# Concatenate the encoded DataFrame with result_df
+result_df = pd.concat([result_df, encoded_df], axis=1)
+
+# Drop the original CombinedClass column
+result_df.drop(columns=['CombinedClass'], inplace=True)
