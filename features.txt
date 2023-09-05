@@ -1,0 +1,49 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+# Sample data (replace with your dataset)
+data = {
+    'Product': ['ProductA', 'ProductB', 'ProductA', 'ProductB'],
+    'Jan': [100, 120, 110, 130],
+    'Feb': [120, 130, 140, 150],
+    'Mar': [130, 140, 160, 170],
+    'Apr': [140, 150, 180, 190],
+    'May': [150, 160, 200, 210]
+}
+
+df = pd.DataFrame(data)
+
+# Adding lag features for the next one month
+df['Sales_Next_Month'] = df.groupby('Product')['Jan'].shift(-1)
+
+# Adding lag features for the next two months
+df['Sales_Next_Two_Months'] = df.groupby('Product')['Jan'].shift(-2)
+
+# Split the data into training and testing sets
+train_df, test_df = train_test_split(df, test_size=0.2, shuffle=False)
+
+# Create models (one for each prediction horizon)
+models = {}
+
+# Predict next month's sales
+model_next_month = RandomForestRegressor(n_estimators=100, random_state=42)
+model_next_month.fit(train_df.drop(['Product', 'Sales_Next_Month'], axis=1), train_df['Sales_Next_Month'])
+models['Next_Month'] = model_next_month
+
+# Predict sales for two months ahead
+model_next_two_months = RandomForestRegressor(n_estimators=100, random_state=42)
+model_next_two_months.fit(train_df.drop(['Product', 'Sales_Next_Two_Months'], axis=1), train_df['Sales_Next_Two_Months'])
+models['Next_Two_Months'] = model_next_two_months
+
+# Make predictions
+for horizon, model in models.items():
+    X_test = test_df.drop(['Product', f'Sales_{horizon}'], axis=1)
+    y_test = test_df[f'Sales_{horizon}']
+    
+    predictions = model.predict(X_test)
+    
+    rmse = np.sqrt(mean_squared_error(y_test, predictions))
+    print(f"RMSE for {horizon}: {rmse}")
