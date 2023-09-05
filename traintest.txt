@@ -1,0 +1,15 @@
+# Assuming you have a DataFrame 'df' with columns: product, month, sales_quantity, and any categorical features
+# Sort the data by the 'month' column
+df.sort_values(by='month', inplace=True)
+
+# Define the split point for training and testing data
+train_ratio = 0.7  # 70% for training, adjust as needed
+split_idx = int(len(df) * train_ratio)
+
+# Split the data into training and test sets
+X_train = df.iloc[:split_idx, :-1]  # Features for training
+y_train = df.iloc[:split_idx, -1]   # Target variable for training
+X_test = df.iloc[split_idx:, :-1]   # Features for testing
+y_test = df.iloc[split_idx:, -1]    # Target variable for testing
+
+# Now you can use X_train, y_train for training your pipeline, and X_test for testing
