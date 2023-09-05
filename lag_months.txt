@@ -1,0 +1,14 @@
+import pandas as pd
+
+# Assuming you have a DataFrame 'df' with products in rows, months in columns, and sales quantities as values
+
+# Define the number of lag months you want to add
+lag_months = 3  # For example, add lag features for the previous 3 months
+
+# Create lag features for each product
+for product in df.index:
+    for lag in range(1, lag_months + 1):
+        lag_column_name = f"Lag_{lag}"  # Name the new column based on lag
+        df.at[product, lag_column_name] = df.at[product, f"Month_{lag}"]
+
+# Now, 'df' contains lag features as new columns for each product
