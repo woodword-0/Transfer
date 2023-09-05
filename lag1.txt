@@ -1,0 +1,25 @@
+import pandas as pd
+from sklearn.base import BaseEstimator, TransformerMixin
+import numpy as np
+
+# Create a custom transformer to add lag features
+class LagFeatureAdder(BaseEstimator, TransformerMixin):
+    def __init__(self, lag):
+        self.lag = lag
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        lagged_features = [X.shift(i) for i in range(1, self.lag + 1)]
+        lagged_features = pd.concat(lagged_features, axis=1)
+        lagged_features.columns = [f'lag_{i}' for i in range(1, self.lag + 1)]
+        return lagged_features
+
+# Example usage:
+# Assuming you have a DataFrame 'df' with a column 'value' that you want to create lag features for
+lag = 3  # Number of lag features to add
+lag_transformer = LagFeatureAdder(lag)
+lagged_features_df = lag_transformer.transform(df[['value']])
+
+# 'lagged_features_df' now contains the lagged features as columns with names like 'lag_1', 'lag_2', 'lag_3'
