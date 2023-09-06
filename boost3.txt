@@ -1,0 +1,36 @@
+import pandas as pd
+from pandas import DataFrame, concat
+
+def series_to_supervised(data, n_in=1, n_out=1, dropnan=True)
+    n_vars = data.shape[1]
+    df = DataFrame(data)
+    cols = list()
+
+    # Input sequence (sales quantities for t-n months, ... t-1 months)
+    for i in range(n_in, 0, -1)
+        cols.append(df.shift(periods=-i, axis=1))  # Shift columns to the left
+
+    # Forecast sequence (sales quantity for t, t+1, ... t+n months)
+    for i in range(0, n_out)
+        cols.append(df.shift(periods=i, axis=1))   # Shift columns to the right
+
+    # Concatenate the columns to create the supervised dataset
+    agg = pd.concat(cols, axis=1)
+
+    # Drop columns with NaN values (NaN values may occur at the beginning or end)
+    if dropnan
+        agg.dropna(axis=1, inplace=True)
+
+    return agg.values
+
+# Example usage
+# Assuming 'data' is your DataFrame where columns represent months
+# n_in is the number of previous months you want to use as input features
+# n_out is the number of future months you want to predict
+n_in = 3  # Use the sales quantities of the previous 3 months as input
+n_out = 1  # Predict the sales quantity for the next month
+
+# Create your supervised dataset
+supervised_data = series_to_supervised(data, n_in=n_in, n_out=n_out)
+
+# 'supervised_data' now contains your XGBoost-ready supervised dataset
