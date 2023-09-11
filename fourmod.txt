@@ -1,0 +1,66 @@
+import pandas as pd
+import numpy as np
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
+from sklearn.linear_model import LassoCV, Ridge
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Function to calculate goodness of fit (R-squared)
+def goodness_of_fit(y_true, y_pred):
+    return r2_score(y_true, y_pred)
+
+# Sample data (modify this to load your actual data)
+result_df = pd.DataFrame(...)  # Replace with your actual data
+
+# Create a dictionary to store results for each model
+results_dict = {}
+
+# List of models to evaluate
+models = {
+    'RandomForest': RandomForestRegressor(),
+    'HistGradientBoosting': HistGradientBoostingRegressor(),
+    'LassoCV': LassoCV(),
+    'Ridge': Ridge()
+}
+
+# Loop through each model
+for model_name, model in models.items():
+    # Create an empty DataFrame to store results
+    results_df = pd.DataFrame(columns=['Product', 'Actual', 'Predicted', 'RMSE', 'Difference', 'Goodness_of_Fit'])
+    
+    # Loop through each product
+    products = result_df['Product'].unique()
+    
+    for product in products:
+        # Extract the time series DataFrame for the current product using multi-indexing
+        product_df = result_df.loc[result_df['Product'] == product]
+        
+        # Remove the last row (t+1) as it will be used for prediction
+        product_df = product_df.iloc[:-1]
+        
+        # Create features (lagged values) and target (t+1 value)
+        X = product_df[['t-2', 't-1', 't0']]  # Features (lagged values)
+        y = product_df['t+1']  # Target variable (next successive date's value)
+        
+        # Split data into train and test sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        # Create a pipeline for modeling
+        pipeline = Pipeline([
+            ('model', model),  # Use the current model
+        ])
+        
+        # Fit the pipeline on the training data
+        pipeline.fit(X_train, y_train)
+        
+        # Predict the next month (t+2) value for the last sequence (t-2, t-1, t0)
+        last_sequence = product_df.iloc[-1][['t-2', 't-1', 't0']].values.reshape(1, -1)
+        next_month_prediction = pipeline.predict(last_sequence)
+        
+        # Store results in the results DataFrame
+        results_df.loc[product] = [product, y_test.values, next_month_prediction, None, None, None]
+    
+    # Store the results for the current model in the dictionary
+    results_dict[model_name] = results_df
+
+# Now, results_dict contains the results for all models, each accessible by its model name
