@@ -1,0 +1,67 @@
+# Models and dataframe
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
+from sklearn.linear_model import LassoCV, Ridge
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Function to calculate goodness of fit (R-squared)
+def goodness_of_fit(y_true, y_pred):
+    return r2_score(y_true, y_pred)
+
+# List of models to evaluate
+models = {
+    'RandomForest': RandomForestRegressor(),
+    'HistGradientBoosting': HistGradientBoostingRegressor(),
+    'LassoCV': LassoCV(),
+    'Ridge': Ridge()
+}
+# Create an empty DataFrame to store results
+final_results = pd.DataFrame(columns=['Product','Model','RMSE','Fit_Score',month_plus1.strftime("%Y-%m-%d %H:%M:%S")])
+# Loop through each model
+for model_name, model in models.items():
+    # Loop through each product
+    products = df1['Product'].unique()
+    
+    for product in products:
+        # Extract the time series DataFrame for the current product using multi-indexing
+        product_df = df1.loc[df1['Product'] == product]
+        # Remove the last row (t+1) as it will be used for prediction
+        X_pred = product_df.tail(1).loc[:,['T-2','T-1','tzero','Target_Tplus1']]
+        X_pred.rename(columns={'T-2':'T-3','T-1':'T-2','tzero':'T-1','Target_Tplus1':'tzero'},inplace=True)
+        # Create features (lagged values) and target (t+1 value)
+        X = product_df.loc[:,['T-3','T-2', 'T-1', 'tzero']]  # Features (lagged values)
+        y = product_df['Target_Tplus1']  # Target variable (next successive date's value)
+        actuals = product_df['tzero']
+        # Split data into train and test sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)       
+        # Create a pipeline for modeling
+        pipeline = Pipeline([
+            ('model', model),  # Use the current model
+        ])
+        
+        # Fit the pipeline on the training data
+        pipeline.fit(X_train, y_train)
+        next_month_prediction = pipeline.predict(X_pred)
+        # Fit the pipeline on the training data
+        pipeline.fit(X_train, y_train)
+        # Make predictions on the test data
+        y_pred = pipeline.predict(X_test)
+        # Calculate RMSE
+        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+        # Calculate difference between actual and predicted
+        diff = y_test - y_pred
+        # Calculate goodness of fit (R-squared)
+        gof = goodness_of_fit(y_test, y_pred)
+        # Store results in a DataFrame
+        results = {'Product': product, 
+        'Model': model_name, 
+        # 'Error': diff, 
+        'RMSE':rmse,
+        'Fit_Score':gof,
+        month_plus1.strftime("%Y-%m-%d %H:%M:%S"):next_month_prediction[0],
+        'Actuals':actuals
+        }
+        final_results = pd.concat([final_results,pd.DataFrame(results,index=[0])],ignore_index=True)
