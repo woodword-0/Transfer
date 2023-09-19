@@ -1,0 +1,22 @@
+import pandas as pd
+
+# Assuming you have a DataFrame named 'df' with the current format
+
+# Create a MultiIndex DataFrame using pivot
+df_pivot = df.pivot(index='column1', columns='column5')
+
+# Flatten the MultiIndex DataFrame
+df_pivot.columns = ['_'.join(col).strip() for col in df_pivot.columns.values]
+
+# Reorder the columns as needed
+columns_order = ['column1'] + sorted([col for col in df_pivot.columns if col != 'column1'])
+df_final = df_pivot[columns_order]
+
+# Reset the index
+df_final.reset_index(inplace=True)
+
+# Rename the columns
+df_final.columns = [col.replace('column5_', '') for col in df_final.columns]
+
+# Display the final DataFrame
+print(df_final)
