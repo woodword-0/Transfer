@@ -1,0 +1,43 @@
+import pandas as pd
+
+# Your original DataFrame
+data = {
+    'column1': ['prod1', 'prod1', 'prod1', 'prod1', 'prod1', 'prod1', 'prod1', 'prod1', 'prod1'],
+    'column2': ['date1', 'date2', 'date3', 'date1', 'date2', 'date3', 'date1', 'date2', 'date3'],
+    'column3': ['actual1', 'actual2', 'actual3', 'actual1', 'actual2', 'actual3', 'actual1', 'actual2', 'actual3'],
+    'column4': ['pred1', 'pred2', 'pred3', 'pred1', 'pred2', 'pred3', 'pred1', 'pred2', 'pred3'],
+    'column5': ['model1', 'model1', 'model1', 'model2', 'model2', 'model2', 'model3', 'model3', 'model3']
+}
+
+df = pd.DataFrame(data)
+
+# Create a new DataFrame in the desired format
+df_new = pd.DataFrame()
+
+# Extract unique values for 'column1', 'column5', and 'column2'
+products = df['column1'].unique()
+models = df['column5'].unique()
+dates = df['column2'].unique()
+
+# Loop through products and models to construct the new DataFrame
+for product in products:
+    for model in models:
+        # Filter the original DataFrame for the current product and model
+        filtered_df = df[(df['column1'] == product) & (df['column5'] == model)]
+        
+        # Extract the 'column4' (pred) and 'column3' (actual) values for the filtered data
+        pred_values = filtered_df['column4'].tolist()
+        actual_values = filtered_df['column3'].tolist()
+        
+        # Construct a new row for the new DataFrame
+        new_row = [product, model] + pred_values + actual_values
+        
+        # Add the new row to the new DataFrame
+        df_new = df_new.append([new_row], ignore_index=True)
+
+# Rename the columns of the new DataFrame
+columns_order = ['product', 'model'] + [f'{date}_pred' for date in dates] + [f'{date}_actual' for date in dates]
+df_new.columns = columns_order
+
+# Display the final DataFrame
+print(df_new)
