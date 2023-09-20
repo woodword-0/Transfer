@@ -1,0 +1,27 @@
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+# Assuming you have a DataFrame with 'Actual' and 'Forecast' columns
+actual_values = results_df['Actual']
+forecasted_values = results_df['Forecast']
+
+# Calculate RMSE for each forecasted month
+rmse_values = []
+
+for target_month in results_df['TargetMonth']:
+    # Filter the data for the specific target month
+    mask = results_df['TargetMonth'] == target_month
+    actual_month = actual_values[mask]
+    forecasted_month = forecasted_values[mask]
+    
+    # Calculate RMSE for the month
+    rmse_month = np.sqrt(mean_squared_error(actual_month, forecasted_month))
+    
+    # Append RMSE to the list
+    rmse_values.append(rmse_month)
+
+# Add RMSE values to the DataFrame
+results_df['RMSE'] = rmse_values
+
+# Print or analyze the RMSE values for each forecasted month
+print(results_df[['TargetMonth', 'RMSE']])
