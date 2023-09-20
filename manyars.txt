@@ -1,0 +1,121 @@
+import pandas as pd
+import numpy as np
+from fbprophet import Prophet
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.arima_model import ARIMA
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, GRU, Dense
+import pymc3 as pm
+import theano.tensor as tt
+
+# Sample data (replace with your own time series data)
+# Example DataFrame structure:
+# Index: monthly dates, Columns: product names, Values: sales or other metric
+date_rng = pd.date_range(start='2022-03-01', periods=18, freq='M')
+product_data = np.random.rand(18, 3)  # Replace with your actual data
+product_df = pd.DataFrame(product_data, index=date_rng, columns=['ProductA', 'ProductB', 'ProductC'])
+
+# Define forecasting parameters
+forecast_horizon = 1  # Forecasting for one month ahead
+window_size = 9       # Use the last 9 months for modeling
+
+# Define target months (from January 2023 to December 2023, including forecast periods)
+target_months = pd.date_range(start='2023-01-01', end='2023-12-01', freq='M')
+
+# Add additional dates to the target_months for forecasting beyond December 2023
+# For example, let's add forecasts for January 2024 and February 2024
+additional_forecast_dates = pd.date_range(start='2024-01-01', end='2024-02-01', freq='M')
+target_months = target_months.union(additional_forecast_dates)
+
+# Initialize a list to store results
+results = []
+
+# Loop through products
+for product in product_df.columns:
+    product_series = product_df[product]
+    
+    # Extract data for modeling, starting from March 2022
+    product_series = product_series.loc['2022-03-01':]
+    
+    # Loop through target months
+    for target_month in target_months:
+        # Select the last 9 months for modeling
+        end_date = target_month - pd.DateOffset(months=1)
+        start_date = end_date - pd.DateOffset(months=window_size-1)
+        training_data = product_series.loc[start_date:end_date]
+        
+        # Fit an ARIMA model (you can adjust the order as needed)
+        arima_model = ARIMA(training_data, order=(1, 1, 1))
+        arima_fit = arima_model.fit(disp=False)
+        
+        # Fit a Holt-Winters (exponential smoothing) model
+        exp_smooth_model = ExponentialSmoothing(training_data, seasonal='add', seasonal_periods=12)
+        exp_smooth_fit = exp_smooth_model.fit()
+        
+        # Fit a Prophet model
+        prophet_model = Prophet()
+        prophet_df = pd.DataFrame({'ds': training_data.index, 'y': training_data.values})
+        prophet_model.fit(prophet_df)
+        
+        # Create and fit an LSTM model
+        lstm_model = Sequential()
+        lstm_model.add(LSTM(50, activation='relu', input_shape=(window_size, 1)))
+        lstm_model.add(Dense(1))
+        lstm_model.compile(optimizer='adam', loss='mse')
+        lstm_training_data = np.array(training_data).reshape(-1, 1)
+        lstm_training_data = lstm_training_data[-window_size:].reshape(1, window_size, 1)
+        lstm_model.fit(lstm_training_data, [0], epochs=10, verbose=0)  # Just for illustration
+        
+        # Create and fit a GRU model
+        gru_model = Sequential()
+        gru_model.add(GRU(50, activation='relu', input_shape=(window_size, 1)))
+        gru_model.add(Dense(1))
+        gru_model.compile(optimizer='adam', loss='mse')
+        gru_training_data = np.array(training_data).reshape(-1, 1)
+        gru_training_data = gru_training_data[-window_size:].reshape(1, window_size, 1)
+        gru_model.fit(gru_training_data, [0], epochs=10, verbose=0)  # Just for illustration
+        
+        # Create and fit a BSTS model
+        with pm.Model() as bsts_model:
+            # Define BSTS components
+            alpha = pm.Normal('alpha', mu=0, sd=1)
+            beta = pm.Normal('beta', mu=0, sd=1)
+            s = pm.Normal('s', mu=0, sd=1, shape=12)
+            likelihood = pm.Normal('y', mu=alpha + beta * tt.arange(len(training_data)) + tt.sum(s), sd=1, observed=training_data)
+            
+            # Sample from the posterior
+            bsts_trace = pm.sample(1000, tune=1000)
+            
+        # Forecast with LSTM (you need to replace this with actual LSTM forecasting code)
+        lstm_forecast = lstm_model.predict(np.array(training_data).reshape(1, window_size, 1))
+        
+        # Forecast with GRU (you need to replace this with actual GRU forecasting code)
+        gru_forecast = gru_model.predict(np.array(training_data).reshape(1, window_size, 1))
+        
+        # Forecast with BSTS (you need to replace this with actual BSTS forecasting code)
+        with bsts_model:
+            bsts_forecast = pm.sample_posterior_predictive(bsts_trace, samples=1)['y'].mean(axis=0)
+        
+        # Get the actual value for the target month if it exists, otherwise use None
+        actual_value = product_series.loc[target_month] if target_month in product_series.index else None
+        
+        # Store results for all models for this product and target month
+        results.append({
+            'Product': product,
+            'TargetMonth': target_month,
+            'Actual': actual_value,
+            'ARIMA_Forecast': arima_forecast[0],
+            'ExpSmooth_Forecast': exp_smooth_forecast.values[0],
+            'Prophet_Forecast': prophet_forecast['yhat'].values[0],
+            'LSTM_Forecast': lstm_forecast[0][0],
+            'GRU_Forecast': gru_forecast[0][0],
+            'BSTS_Forecast': bsts_forecast[-1],
+        })
+
+# Create
+# Create a pandas DataFrame from the results
+results_df = pd.DataFrame(results)
+
+# Print the results DataFrame
+print(results_df)
