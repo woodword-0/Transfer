@@ -1,0 +1,38 @@
+import numpy as np
+import pandas as pd
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from statsmodels.tsa.arima_model import ARIMA
+from fbprophet import Prophet
+
+# Sample time series data (replace with your own data)
+data = np.random.rand(100)  # Replace with your time series data
+
+# Create a DataFrame with a date index
+date_rng = pd.date_range(start='2022-01-01', periods=len(data), freq='D')
+ts_data = pd.Series(data, index=date_rng)
+
+# Define a forecasting horizon (e.g., number of future periods to forecast)
+forecast_horizon = 10
+
+# Initialize models
+arima_model = ARIMA(ts_data, order=(1, 1, 1))
+sarima_model = SARIMAX(ts_data, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12))
+prophet_model = Prophet()
+exponential_model = ExponentialSmoothing(ts_data, seasonal='add', seasonal_periods=12)
+
+# Fit models
+arima_fit = arima_model.fit()
+sarima_fit = sarima_model.fit()
+prophet_fit = prophet_model.fit(ts_data.reset_index().rename(columns={'index':'ds', 'value':'y'}))
+exponential_fit = exponential_model.fit()
+
+# Make forecasts
+arima_forecast = arima_fit.forecast(steps=forecast_horizon)
+sarima_forecast = sarima_fit.get_forecast(steps=forecast_horizon)
+prophet_future = prophet_fit.make_future_dataframe(periods=forecast_horizon, freq='D')
+prophet_forecast = prophet_fit.predict(prophet_future.tail(forecast_horizon))
+exponential_forecast = exponential_fit.forecast(steps=forecast_horizon)
+
+# The variables arima_forecast, sarima_forecast, prophet_forecast, and exponential_forecast
+# contain the respective forecasts from each model.
