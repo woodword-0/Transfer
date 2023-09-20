@@ -25,3 +25,34 @@ results_df['RMSE'] = rmse_values
 
 # Print or analyze the RMSE values for each forecasted month
 print(results_df[['TargetMonth', 'RMSE']])
+
+
+from sklearn.metrics import mean_squared_error
+import numpy as np
+
+# Assuming you have a DataFrame with 'Product', 'Actual', and 'Forecast' columns
+products = results_df['Product'].unique()
+
+# Initialize a list to store RMSE values per product and month
+rmse_values = []
+
+for product in products:
+    product_df = results_df[results_df['Product'] == product]
+    
+    for target_month in product_df['TargetMonth']:
+        # Filter the data for the specific product and target month
+        mask = (product_df['TargetMonth'] == target_month)
+        actual_month = product_df[mask]['Actual']
+        forecasted_month = product_df[mask]['Forecast']
+        
+        # Calculate RMSE for the month
+        rmse_month = np.sqrt(mean_squared_error(actual_month, forecasted_month))
+        
+        # Append RMSE to the list along with product and target month information
+        rmse_values.append({'Product': product, 'TargetMonth': target_month, 'RMSE': rmse_month})
+
+# Create a DataFrame from the RMSE values
+rmse_df = pd.DataFrame(rmse_values)
+
+# Print or analyze the RMSE values for each product and each forecasted month
+print(rmse_df)
