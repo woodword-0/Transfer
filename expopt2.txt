@@ -1,0 +1,49 @@
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
+product_df = transpose
+
+# Define forecasting parameters
+forecast_horizon = 1  # Forecasting for one month ahead
+window_size = 9       # Use the last 9 months for modeling
+
+# Define target months (from January 2023 to September 2023)
+target_months = transpose.iloc[transpose.index >= '2023-01-01'].index
+additional_months = pd.date_range(start='2023-08-31', end='2023-10-31', freq='M')
+target_months = target_months.union(additional_months)
+
+# Initialize a list to store results
+results = []
+
+# Define a range of alpha values to search through
+alpha_values = np.linspace(0.1, 0.9, 9)  # Adjust the range as needed
+
+# Loop through products
+for product in product_df.columns:
+    product_series = product_df[product]
+    
+    # Extract data for modeling, starting from March 2022
+    product_series = product_series.loc['2022-03-01':]
+    
+    # Loop through target months
+    for target_month in target_months:
+        # Select the last 9 months for modeling
+        end_date = target_month - pd.DateOffset(months=1)
+        start_date = end_date - pd.DateOffset(months=window_size-1)
+        training_data = product_series.loc[start_date:end_date]
+        
+        best_mse = float('inf')  # Initialize with a large value
+        best_alpha = None
+        
+        # Iterate through alpha values and find the best-performing model
+        for alpha in alpha_values:
+            # Fit a Holt-Winters (exponential smoothing) model with the current alpha
+            exp_smooth_model = ExponentialSmoothing(training_data, seasonal='add', seasonal_periods=12, trend='add', freq='M')
+            exp_smooth_fit = exp_smooth_model.fit(smoothing_level=alpha)
+            
+            # Make forecasts with the current model
+            exp_smooth_forecast = exp_smooth_fit.forecast(steps=forecast_horizon)
+            
+            # Calculate Mean Squared Error (MSE)
+            mse = ((exp_smooth_forecast - product_series[target_month])**2
