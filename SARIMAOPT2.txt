@@ -1,0 +1,73 @@
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from scipy.optimize import minimize
+
+# Sample data (replace with your own time series data)
+# Assuming you have a DataFrame with 'Product', 'Actual', and 'Forecast' columns
+product_df = transpose
+
+# Define forecasting parameters
+forecast_horizon = 1  # Forecasting for one month ahead
+window_size = 9       # Use the last 9 months for modeling
+
+# Define target months (from January 2023 to September 2023)
+target_months = transpose.iloc[transpose.index >= '2023-01-01'].index
+additional_months = pd.date_range(start='2023-08-31', end='2023-10-31', freq='M')
+target_months = target_months.union(additional_months)
+
+# Initialize a list to store results
+results = []
+
+# Loop through products
+for product in product_df.columns:
+    product_series = product_df[product]
+    # Extract data for modeling, starting from March 2022
+    product_series = product_series.loc['2022-03-01':]
+    # Loop through target months
+    for target_month in target_months:
+        # Select the last 9 months for modeling
+        end_date = target_month - pd.DateOffset(months=1)
+        start_date = end_date - pd.DateOffset(months=window_size - 1)
+        training_data = product_series.loc[start_date:end_date]
+
+        # Define a function to optimize the SARIMA model parameters
+        def optimize_sarima(params):
+            p, d, q, P, D, Q, s = params
+            try:
+                sarima_model = SARIMAX(training_data,
+                                       order=(int(p), int(d), int(q)),
+                                       seasonal_order=(int(P), int(D), int(Q), int(s)))
+                sarima_fit = sarima_model.fit(disp=False)
+                mse = np.mean((sarima_fit.fittedvalues - training_data) ** 2)
+                return mse
+            except:
+                return np.inf  # Return a large value if the model cannot be fitted
+
+        # Use scipy's minimize function to find the best SARIMA parameters
+        initial_params = (1, 1, 1, 1, 1, 1, 12)  # Initial guess for SARIMA parameters
+        bounds = [(1, 3), (0, 1), (1, 3), (1, 3), (0, 1), (1, 3), (12, 12)]  # Parameter bounds
+        best_params = minimize(optimize_sarima, initial_params, bounds=bounds, method='L-BFGS-B').x
+        p, d, q, P, D, Q, s = best_params
+
+        # Fit the SARIMA model with the optimized parameters
+        sarima_model = SARIMAX(training_data,
+                               order=(int(p), int(d), int(q)),
+                               seasonal_order=(int(P), int(D), int(Q), int(s)))
+        sarima_fit = sarima_model.fit()
+
+        # Forecast using the SARIMA model
+        forecast = sarima_fit.forecast(steps=forecast_horizon)
+
+        # Get the actual value for the target month if it exists, otherwise use None
+        actual_value = product_series.loc[target_month] if target_month in product_series.index else None
+
+        # Store results for the SARIMA model for this product and target month
+        results.append({'Product': product, 'TargetMonth': target_month, 'Actual': actual_value,
+                        'Forecast_Model1': forecast.values[0]})
+
+# Create a pandas DataFrame from the results
+results_df = pd.DataFrame(results)
+
+# Print the results DataFrame
+print(results_df)
