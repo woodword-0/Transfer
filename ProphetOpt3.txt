@@ -1,0 +1,85 @@
+import pandas as pd
+import numpy as np
+from prophet import Prophet
+from prophet.diagnostics import cross_validation
+from prophet.diagnostics import performance_metrics
+from prophet.diagnostics import performance_metrics
+from prophet.plot import plot_cross_validation_metric
+from hyperopt import fmin, tpe, hp, Trials
+import datetime
+
+product_df = transpose
+
+# Define forecasting parameters
+forecast_horizon = 1  # Forecasting for one month ahead
+window_size = 9       # Use the last 9 months for modeling
+
+# Define target months (from January 2023 to September 2023)
+target_months = transpose.iloc[transpose.index >= '2023-01-01'].index
+additional_months = pd.date_range(start='2023-08-31', end='2023-10-31', freq='M')
+target_months = target_months.union(additional_months)
+
+# Initialize a list to store results
+results = []
+
+
+# Loop through products
+for product in product_df.columns:
+    product_series = product_df[product]
+    
+    # Extract data for modeling, starting from March 2022
+    product_series = product_series.loc['2022-03-01':]
+    
+    # Loop through target months
+    for target_month in target_months:
+        # Select the last 9 months for modeling
+        end_date = target_month - pd.DateOffset(months=1)
+        start_date = end_date - pd.DateOffset(months=window_size-1)
+        training_data = product_series.loc[start_date:end_date]
+        
+        # Define the optimization objective function
+        def optimize_prophet(params):
+            # Define the Prophet model with custom parameters
+            model = Prophet(**params, yearly_seasonality=False, weekly_seasonality=False, daily_seasonality=False)
+            
+            # Fit the model
+            df = pd.DataFrame({'ds': training_data.index, 'y': training_data.values})
+            model.fit(df)
+            
+            # Perform cross-validation and calculate RMSE (you can use other metrics)
+            cv_results = cross_validation(model,initial = '2023-07-31', horizon='30 days')
+            metrics = performance_metrics(cv_results)
+            rmse = metrics['rmse'].values[0]
+            
+            return rmse
+        
+        # Define the parameter space for optimization
+        param_space = {
+            'changepoint_prior_scale': hp.uniform('changepoint_prior_scale', 0.001, 0.5),
+            'seasonality_prior_scale': hp.uniform('seasonality_prior_scale', 0.01, 10.0),
+        }
+        
+        # Perform Bayesian optimization
+        trials = Trials()
+        best_params = fmin(fn=optimize_prophet, space=param_space, algo=tpe.suggest, max_evals=10, trials=trials)
+        
+        # Fit the Prophet model with the best parameters
+        best_model = Prophet(**best_params, yearly_seasonality=False, weekly_seasonality=False, daily_seasonality=False)
+        best_model.fit(pd.DataFrame({'ds': training_data.index, 'y': training_data.values}))
+        
+        # Make forecast
+        future = pd.DataFrame({'ds': [target_month]})
+        prophet_forecast = best_model.predict(future)
+        
+        # Get the actual value for the target month if it exists, otherwise use None
+        actual_value = product_series.loc[target_month] if target_month in product_series.index else None
+        
+        # Store results for the Prophet model for this product and target month
+        results.append({'Product': product, 'TargetMonth': target_month, 'Actual': actual_value,
+                        'Forecast_Model2': prophet_forecast['yhat'].values[0]})
+
+# Create a pandas DataFrame from the results
+results_df2 = pd.DataFrame(results)
+
+# Print the results DataFrame
+print(results_df2)
