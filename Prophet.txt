@@ -1,0 +1,51 @@
+import pandas as pd
+import numpy as np
+from prophet import Prophet
+
+product_df = transpose
+
+# Define forecasting parameters
+forecast_horizon = 1  # Forecasting for one month ahead
+window_size = 9       # Use the last 9 months for modeling
+
+# # Define target months (from January 2023 to September 2023)
+target_months = transpose.iloc[transpose.index >= '2023-01-01'].index
+additional_months = pd.date_range(start = '2023-08-31',end = '2023-10-31',freq='M')
+target_months = target_months.union(additional_months)
+# Initialize a list to store results
+results = []
+
+
+# Loop through products
+for product in product_df.columns:
+    product_series = product_df[product]
+    
+    # Extract data for modeling, starting from March 2022
+    product_series = product_series.loc['2022-03-01':]
+    
+    # Loop through target months
+    for target_month in target_months:
+        # Select the last 9 months for modeling
+        end_date = target_month - pd.DateOffset(months=1)
+        start_date = end_date - pd.DateOffset(months=window_size-1)
+        training_data = product_series.loc[start_date:end_date]
+        # Fit a Prophet model
+        prophet_model = Prophet()
+        prophet_df = pd.DataFrame({'ds': training_data.index, 'y': training_data.values})
+        prophet_model.fit(prophet_df)
+        
+        # Make forecast
+        prophet_future = prophet_model.make_future_dataframe(periods=forecast_horizon, freq='M')
+        prophet_forecast = prophet_model.predict(prophet_future.tail(forecast_horizon))
+        
+        # Get the actual value for the target month if it exists, otherwise use None
+        actual_value = product_series.loc[target_month] if target_month in product_series.index else None
+        
+        # Store results for both models for this product and target month
+        results.append({'Product': product, 'TargetMonth': target_month, 'Actual': actual_value, 'Forecast_Model2': prophet_forecast['yhat'].values[0]})
+
+# Create a pandas DataFrame from the results
+results_df1 = pd.DataFrame(results)
+
+# Print the results DataFrame
+print(results_df1)
