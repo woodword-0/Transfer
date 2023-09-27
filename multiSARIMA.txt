@@ -1,0 +1,47 @@
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+from itertools import product
+
+# Create a sample time series DataFrame
+date_rng = pd.date_range(start='2022-01-01', periods=60, freq='M')
+data = {
+    'Column1': np.sin(np.arange(60) * 0.1) + np.random.randn(60) * 0.1,
+    'Column2': np.cos(np.arange(60) * 0.2) + np.random.randn(60) * 0.1,
+}
+df = pd.DataFrame(data, index=date_rng)
+
+# Define SARIMA hyperparameters
+p = d = q = range(0, 2)
+seasonal_pdq = [(x[0], x[1], x[2], 12) for x in list(product(p, d, q))]
+
+# Iterate through columns and fit SARIMA models
+for col in df.columns:
+    best_aic = np.inf
+    best_order = None
+    best_seasonal_order = None
+    best_model = None
+    
+    for param in seasonal_pdq:
+        try:
+            model = sm.tsa.SARIMAX(df[col], order=(1, 1, 1), seasonal_order=param)
+            results = model.fit()
+            
+            if results.aic < best_aic:
+                best_aic = results.aic
+                best_order = (1, 1, 1)
+                best_seasonal_order = param
+                best_model = results
+        except Exception as e:
+            continue
+    
+    # Print the best SARIMA parameters for the current column
+    print(f'Best SARIMA({best_order})x{best_seasonal_order} AIC: {best_aic:.2f}')
+    
+    # Generate forecasts
+    forecast_steps = 12  # Number of steps to forecast into the future
+    forecast = best_model.get_forecast(steps=forecast_steps)
+    
+    # Print the forecasts
+    print(f'Forecasts for {col}:')
+    print(forecast.predicted_mean)
