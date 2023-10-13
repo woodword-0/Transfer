@@ -1,0 +1,21 @@
+Individual forecasts for: salestotal, quantity, unitcost, unitprice and revenue.
+Notebooks:
+D365_Ingestion_Table_Forecast_Model1
+D365_Ingestion_Table_Forecast_Model2
+D365_Ingestion_Table_Forecast_Model3
+D365_Ingestion_Table_Forecast_Model4
+(There is one notebook for each model)
+Outputs 4 tables, respectively, that model each of the aforementioned columns
+
+Forecast for Quantity to create table for Power BI with impact scores, RMSE, Goodness of fit, etc.
+(This is the main forecasting notebook if you want to forecast on other quantities just change the transpose 
+dataframes  in each model and perhaps names)
+Notebook:
+RMSE_Table_v2
+Outputs the forecast_v2 table
+
+Creation of templates for D365 plus container
+Notebook:
+ContainerCreationScript
+Outputs a container with the appropriate templates in .txt format called 'mlcontainer'
+
