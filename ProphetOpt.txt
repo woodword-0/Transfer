@@ -64,7 +64,7 @@ for product in product_df.columns:
         best_params = fmin(fn=optimize_prophet, space=param_space, algo=tpe.suggest, max_evals=10, trials=trials)
         
         # Fit the Prophet model with the best parameters
-        best_model = Prophet(**best_params, yearly_seasonality=False, weekly_seasonality=False, daily_seasonality=False)
+        best_model = Prophet(**best_params, yearly_seasonality=False, weekly_seasonality=False, 	daily_seasonality=False)
         best_model.fit(pd.DataFrame({'ds': training_data.index, 'y': training_data.values}))
         
         # Make forecast

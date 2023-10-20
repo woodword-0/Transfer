@@ -39,7 +39,7 @@ for product in product_df.columns:
         # Iterate through alpha values and find the best-performing model
         for alpha in alpha_values:
             # Fit a Holt-Winters (exponential smoothing) model with the current alpha
-            exp_smooth_model = ExponentialSmoothing(training_data, seasonal='add', seasonal_periods=12, trend='add', freq='M')
+            exp_smooth_model = ExponentialSmoothing(training_data, seasonal='add', seasonal_periods=12,       trend='add', freq='M')
             exp_smooth_fit = exp_smooth_model.fit(smoothing_level=alpha)
             
             # Make forecasts with the current model

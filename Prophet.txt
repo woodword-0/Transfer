@@ -16,7 +16,8 @@ target_months = target_months.union(additional_months)
 results = []
 
 
-# Loop through products
+# Loop through prod
+ucts
 for product in product_df.columns:
     product_series = product_df[product]
     
